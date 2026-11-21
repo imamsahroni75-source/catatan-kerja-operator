@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173d56"><meta name="description" content="Catatan Kerja Operator Madrasah Multi Lembaga">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Catatan Kerja Operator</title>
+<style>
+:root{--navy:#173d56;--blue:#24536f;--bg:#f3f6f9;--ink:#1d2935;--muted:#6b7b89;--line:#e3e9ee;--white:#fff;--green:#16865b;--amber:#b7791f;--red:#c24141}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:var(--navy);color:white;padding:18px max(18px,calc((100% - 1120px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-weight:800;font-size:19px;letter-spacing:.2px}.sub{font-size:12px;color:#c9dce8;margin-top:3px}
+main{max-width:1120px;margin:22px auto;padding:0 16px 90px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+select,input,textarea{font:inherit;border:1px solid var(--line);border-radius:10px;padding:11px;background:white;color:var(--ink);width:100%}
+button{font:inherit;border:0;border-radius:10px;padding:11px 15px;background:var(--navy);color:white;font-weight:650;cursor:pointer}
+button.secondary{background:#e8eef3;color:var(--navy)}button.danger{background:#fff0f0;color:#a52d2d}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:15px 0}
+.card{background:white;border:1px solid var(--line);border-radius:15px;padding:16px;box-shadow:0 2px 8px #102b3b08}
+.stat-num{font-size:27px;font-weight:800;margin-top:6px}.muted{color:var(--muted);font-size:13px}
+.layout{display:grid;grid-template-columns:1.15fr .85fr;gap:15px}.section-title{font-weight:800;margin:0 0 12px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+label{display:block;font-size:12px;font-weight:700;color:#526373;margin-bottom:5px}
+.task{border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0;background:#fff}
+.tasktop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.task h3{font-size:15px;margin:0 0 5px}
+.pill{font-size:11px;padding:4px 8px;border-radius:30px;background:#edf2f6;color:#405363;white-space:nowrap}
+.pill.done{background:#e3f5eb;color:#147348}.pill.wait{background:#fff3d9;color:#8b5b0b}.pill.high{background:#ffe9e9;color:#a52d2d}
+.taskmeta{font-size:12px;color:var(--muted);margin-top:8px}.taskactions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}.taskactions button{font-size:12px;padding:7px 10px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#e7edf2;color:#385268}.tabs button.active{background:var(--navy);color:white}
+.empty{padding:25px;text-align:center;color:var(--muted)}.notice{background:#fff8e8;border:1px solid #f2dfb3;color:#72521a;padding:12px;border-radius:12px;font-size:13px;margin-bottom:15px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin:22px 0}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}header{padding:16px}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}.toolbar>*{flex:1}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">🎓 CATATAN KERJA OPERATOR</div><div class="sub">Multi Lembaga · Satu Operator, Banyak Lembaga</div></div><button id="installBtn" class="secondary" style="display:none">Pasang aplikasi</button></header>
+<main>
+<div class="notice"><b>Versi awal:</b> catatan disimpan di perangkat/browser ini. Gunakan Ekspor Backup secara berkala. Login Google dan sinkronisasi cloud akan diaktifkan setelah konfigurasi Firebase milik Anda tersedia.</div>
+<div class="toolbar">
+<select id="institutionFilter" aria-label="Pilih lembaga"></select>
+<button id="exportBtn" class="secondary">Ekspor Backup</button>
+<button id="importBtn" class="secondary">Impor Backup</button>
+<input id="importFile" type="file" accept="application/json" hidden>
+</div>
+<div class="stats">
+<div class="card"><div class="muted">Total tugas</div><div class="stat-num" id="total">0</div></div>
+<div class="card"><div class="muted">Belum dikerjakan</div><div class="stat-num" id="todo">0</div></div>
+<div class="card"><div class="muted">Dalam proses</div><div class="stat-num" id="progress">0</div></div>
+<div class="card"><div class="muted">Selesai</div><div class="stat-num" id="done">0</div></div>
+</div>
+<div class="tabs" id="tabs">
+<button class="active" data-tab="tasks">Daftar Tugas</button><button data-tab="institutions">Lembaga</button><button data-tab="categories">Kategori</button><button data-tab="reports">Laporan</button>
+</div>
+<section id="tasksView">
+<div class="layout">
+<div class="card">
+<h2 class="section-title" id="formHeading">＋ Tambah Catatan Tugas</h2>
+<form id="taskForm">
+<input type="hidden" id="taskId">
+<div class="formgrid">
+<div class="full"><label for="taskTitle">Judul pekerjaan *</label><input id="taskTitle" required placeholder="Contoh: Pemutakhiran data EMIS"></div>
+<div><label for="taskInstitution">Lembaga *</label><select id="taskInstitution" required></select></div>
+<div><label for="taskCategory">Kategori *</label><select id="taskCategory" required></select></div>
+<div><label for="taskStatus">Status</label><select id="taskStatus"><option>Belum dikerjakan</option><option>Sedang dikerjakan</option><option>Menunggu</option><option>Selesai</option></select></div>
+<div><label for="taskPriority">Prioritas</label><select id="taskPriority"><option>Sedang</option><option>Tinggi</option><option>Rendah</option></select></div>
+<div><label for="taskStart">Tanggal mulai</label><input id="taskStart" type="date"></div>
+<div><label for="taskDue">Batas waktu</label><input id="taskDue" type="date"></div>
+<div class="full"><label for="taskNote">Uraian / catatan</label><textarea id="taskNote" rows="3" placeholder="Tuliskan detail, kendala, atau hasil pekerjaan..."></textarea></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:12px"><button type="submit">Simpan Tugas</button><button type="button" class="secondary" id="cancelEdit">Batal</button></div>
+</form>
+</div>
+<div class="card"><h2 class="section-title">Daftar Pekerjaan</h2>
+<div class="formgrid" style="margin-bottom:10px"><div class="full"><input id="search" placeholder="Cari judul atau catatan..."></div><div><select id="statusFilter"><option value="">Semua status</option><option>Belum dikerjakan</option><option>Sedang dikerjakan</option><option>Menunggu</option><option>Selesai</option></select></div><div><select id="sortFilter"><option value="deadline">Urut deadline</option><option value="newest">Terbaru dibuat</option></select></div></div>
+<div id="taskList"></div>
+</div>
+</div>
+</section>
+<section id="institutionsView" hidden class="card">
+<h2 class="section-title">Manajemen Lembaga</h2>
+<form id="institutionForm" class="formgrid"><div class="full"><label>Nama lembaga baru</label><input id="institutionName" required placeholder="Nama lembaga"></div><div><label>Jenjang</label><select id="institutionType"><option>MI</option><option>MTs</option><option>RA</option><option>MA</option><option>Lainnya</option></select></div><div style="align-self:end"><button>Tambah Lembaga</button></div></form><div id="institutionList" style="margin-top:15px"></div>
+</section>
+<section id="categoriesView" hidden class="card">
+<h2 class="section-title">Kategori Pekerjaan</h2>
+<form id="categoryForm" style="display:flex;gap:8px;flex-wrap:wrap"><input id="categoryName" required placeholder="Nama kategori baru" style="flex:1;min-width:180px"><button>Tambah Kategori</button></form><div id="categoryList" style="margin-top:15px"></div>
+</section>
+<section id="reportsView" hidden class="card">
+<h2 class="section-title">Laporan Pekerjaan</h2><p class="muted">Rekap berdasarkan lembaga yang dipilih pada bagian atas.</p><div id="reportContent"></div><button id="reportExport" class="secondary">Unduh laporan CSV</button>
+</section>
+<footer>Catatan Kerja Operator · Versi awal 1.0</footer>
+</main>
+<script>
+const DEFAULT_INSTITUTIONS=[
+{name:"MI Nurul Islam Gedangmas",type:"MI"},
+{name:"MI Bahjatul Ulum Ranuwurung",type:"MI"},
+{name:"MTs Bahjatul Ulum Ranuwurung",type:"MTs"},
+{name:"RA Al Ihsan Ranuwurung",type:"RA"}];
+const DEFAULT_CATEGORIES=["EMIS 4.0","EMIS GTK","Verval PD","RDM","E-Erkan","EDM","Realisasi dan LPJ BOS","Administrasi Lain"];
+const KEY="cko_data_v1";
+let data=JSON.parse(localStorage.getItem(KEY)||"null")||{institutions:DEFAULT_INSTITUTIONS,categories:DEFAULT_CATEGORIES,tasks:[]};
+let activeTab="tasks";
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function selectedInstitution(){return $("institutionFilter").value||"*"}
+function filteredTasks(){let inst=selectedInstitution(),st=$("statusFilter").value,q=$("search").value.toLowerCase();return data.tasks.filter(t=>(inst==="*"||t.institution===inst)&&(!st||t.status===st)&&(!q||(t.title+" "+t.note).toLowerCase().includes(q))).sort((a,b)=>$("sortFilter").value==="newest"?b.created-a.created:(a.due||"9999").localeCompare(b.due||"9999"))}
+function fillSelect(id,items,all=false){let el=$(id),old=el.value;el.innerHTML=(all?'<option value="*">Semua Lembaga</option>':"")+items.map(x=>`<option value="${esc(x.name||x)}">${esc(x.name||x)}</option>`).join("");if([...el.options].some(o=>o.value===old))el.value=old}
+function render(){
+fillSelect("institutionFilter",data.institutions,true);fillSelect("taskInstitution",data.institutions);fillSelect("taskCategory",data.categories);
+let tasks=filteredTasks();$("total").textContent=tasks.length;$("todo").textContent=tasks.filter(t=>t.status==="Belum dikerjakan").length;$("progress").textContent=tasks.filter(t=>t.status==="Sedang dikerjakan"||t.status==="Menunggu").length;$("done").textContent=tasks.filter(t=>t.status==="Selesai").length;
+$("taskList").innerHTML=tasks.length?tasks.map(t=>`<article class="task"><div class="tasktop"><div><h3>${esc(t.title)}</h3><div class="muted">${esc(t.institution)} · ${esc(t.category)}</div></div><span class="pill ${t.status==="Selesai"?"done":t.status==="Menunggu"?"wait":""}">${esc(t.status)}</span></div><div class="taskmeta">Prioritas: ${esc(t.priority)} · Deadline: ${esc(t.due||"Belum ditentukan")}</div>${t.note?`<div class="taskmeta">${esc(t.note)}</div>`:""}<div class="taskactions"><button class="secondary" onclick="editTask('${t.id}')">Edit</button><button class="secondary" onclick="cycleStatus('${t.id}')">Ubah status</button><button class="danger" onclick="deleteTask('${t.id}')">Hapus</button></div></article>`).join():'<div class="empty">Belum ada catatan tugas. Silakan tambahkan pekerjaan pertama Anda.</div>';
+$("institutionList").innerHTML=data.institutions.map((x,i)=>`<div class="task"><b>${esc(x.name)}</b><div class="muted">${esc(x.type)}</div>${i>=4?`<button class="danger" style="margin-top:8px" onclick="removeInstitution('${esc(x.name)}')">Hapus lembaga</button>`:"<span class='muted'>Lembaga bawaan</span>"}</div>`).join("");
+$("categoryList").innerHTML=data.categories.map((x,i)=>`<div class="task" style="display:flex;justify-content:space-between;align-items:center"><b>${esc(x)}</b>${i>=8?`<button class="danger" onclick="removeCategory('${esc(x)}')">Hapus</button>`:"<span class='muted'>Bawaan</span>"}</div>`).join("");
+let byInst=data.institutions.filter(x=>selectedInstitution()==="*"||x.name===selectedInstitution()).map(x=>{let ts=data.tasks.filter(t=>t.institution===x.name);return `<div class="task"><b>${esc(x.name)}</b><div class="taskmeta">Total ${ts.length} · Selesai ${ts.filter(t=>t.status==="Selesai").length} · Belum selesai ${ts.filter(t=>t.status!=="Selesai").length}</div></div>`}).join("");
+$("reportContent").innerHTML=byInst||'<div class="empty">Belum ada data laporan.</div>';
+}
+function resetForm(){$("taskForm").reset();$("taskId").value="";$("formHeading").textContent="＋ Tambah Catatan Tugas"}
+$("taskForm").addEventListener("submit",e=>{e.preventDefault();let id=$("taskId").value;let old=data.tasks.find(t=>t.id===id);let t={id:id||crypto.randomUUID(),title:$("taskTitle").value.trim(),institution:$("taskInstitution").value,category:$("taskCategory").value,status:$("taskStatus").value,priority:$("taskPriority").value,start:$("taskStart").value,due:$("taskDue").value,note:$("taskNote").value.trim(),created:old?.created||Date.now(),updated:Date.now()};if(old)data.tasks=data.tasks.map(x=>x.id===id?t:x);else data.tasks.unshift(t);resetForm();save()});
+window.editTask=id=>{let t=data.tasks.find(x=>x.id===id);if(!t)return;$("taskId").value=t.id;$("taskTitle").value=t.title;$("taskInstitution").value=t.institution;$("taskCategory").value=t.category;$("taskStatus").value=t.status;$("taskPriority").value=t.priority;$("taskStart").value=t.start||"";$("taskDue").value=t.due||"";$("taskNote").value=t.note||"";$("formHeading").textContent="✎ Edit Catatan Tugas";window.scrollTo({top:0,behavior:"smooth"})};
+window.deleteTask=id=>{if(confirm("Hapus catatan tugas ini?")){data.tasks=data.tasks.filter(t=>t.id!==id);save()}};
+window.cycleStatus=id=>{let t=data.tasks.find(x=>x.id===id);let s=["Belum dikerjakan","Sedang dikerjakan","Menunggu","Selesai"];t.status=s[(s.indexOf(t.status)+1)%s.length];save()};
+window.removeInstitution=name=>{if(data.tasks.some(t=>t.institution===name)){alert("Lembaga masih memiliki tugas. Pindahkan atau hapus tugasnya terlebih dahulu.");return}if(confirm("Hapus lembaga "+name+"?")){data.institutions=data.institutions.filter(x=>x.name!==name);save()}};
+window.removeCategory=name=>{if(data.tasks.some(t=>t.category===name)){alert("Kategori masih digunakan oleh tugas. Ubah kategori tugas terlebih dahulu.");return}if(confirm("Hapus kategori "+name+"?")){data.categories=data.categories.filter(x=>x!==name);save()}};
+$("institutionForm").addEventListener("submit",e=>{e.preventDefault();let name=$("institutionName").value.trim();if(data.institutions.some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert("Lembaga sudah terdaftar.");data.institutions.push({name,type:$("institutionType").value});$("institutionForm").reset();save()});
+$("categoryForm").addEventListener("submit",e=>{e.preventDefault();let name=$("categoryName").value.trim();if(data.categories.some(x=>x.toLowerCase()===name.toLowerCase()))return alert("Kategori sudah ada.");data.categories.push(name);$("categoryForm").reset();save()});
+$("cancelEdit").onclick=resetForm;
+["institutionFilter","statusFilter","sortFilter"].forEach(id=>$(id).addEventListener("change",render));$("search").addEventListener("input",render);
+$("tabs").addEventListener("click",e=>{let b=e.target.closest("button[data-tab]");if(!b)return;activeTab=b.dataset.tab;document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("active",x===b));["tasks","institutions","categories","reports"].forEach(x=>$(x+"View").hidden=x!==activeTab)});
+$("exportBtn").onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});download(blob,"backup-catatan-kerja-operator.json")};
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.institutions)||!Array.isArray(d.categories)||!Array.isArray(d.tasks))throw 0;if(confirm("Impor akan mengganti data saat ini. Lanjutkan?")){data=d;save()}}catch{alert("File backup tidak valid.")}e.target.value=""};
+function download(blob,name){let a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$("reportExport").onclick=()=>{let rows=[["Lembaga","Judul","Kategori","Status","Prioritas","Mulai","Deadline","Catatan"],...filteredTasks().map(t=>[t.institution,t.title,t.category,t.status,t.priority,t.start,t.due,t.note])];let csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");download(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"laporan-catatan-kerja-operator.csv")};
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+let deferredPrompt;$("installBtn").addEventListener("click",async()=>{if(deferredPrompt){deferredPrompt.prompt();deferredPrompt=null}else alert("Gunakan menu browser: Tambahkan ke layar utama / Install app.")});
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installBtn").style.display="block"});
+render();
+</script>
+</body></html>
